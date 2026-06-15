@@ -1,25 +1,39 @@
 # Rotorflight BW Dashboard
 
-Projeto Lua de telemetria para radios FrSky monocromaticos com OpenTX/EdgeTX, inspirado no Rotorflight Suite, mas adaptado para telas preto e branco e hardware mais limitado.
+Lightweight Lua telemetry dashboard for monochrome FrSky radios running OpenTX or EdgeTX.
 
-## Status
+RFMONO is inspired by the Rotorflight Suite for Ethos, but it is designed for small black-and-white screens, low memory, and older transmitters such as the Taranis X9D and QX7.
 
-MVP inicial:
+## Current Status
 
-- Estrutura de projeto separada por responsabilidades
-- Uma unica tela de telemetria
-- Fallback seguro para sensores ausentes
-- Suporte a dados simulados para desenvolvimento inicial
-- Avisos simples na area inferior
+This project is still an MVP, but it is already structured for real radio testing:
 
-Ainda nao implementado nesta primeira versao:
+- Single telemetry screen optimized for 128x64 monochrome displays
+- Separate modules for configuration, sensors, layout, and alerts
+- Safe fallback when telemetry sensors are missing
+- Rotorflight-oriented telemetry aliases in `cfg.lua`
+- ARM and ARMD status handling
+- Governor state derived from throttle when no governor sensor is available
+- Optional simulation data for development
+- Custom audio events stored under the standard SD card `SOUNDS` tree
 
-- Auto-deteccao avancada de sensores
-- Multiplas telas
-- Graficos
-- Integracao ajustada para todas as variacoes de telemetria Rotorflight
+Not implemented yet:
 
-## Estrutura
+- Multiple telemetry pages
+- Heavy graphs or historical telemetry plots
+- Advanced automatic sensor discovery
+- Full coverage for every possible Rotorflight telemetry setup
+
+## Supported Radios
+
+The target radios are older monochrome FrSky transmitters, including:
+
+- FrSky Taranis X9D / X9D+ / X9D 2019
+- FrSky Taranis QX7 / QX7S
+
+Other 128x64 OpenTX/EdgeTX radios may work, but the layout is primarily tuned for the models above.
+
+## Project Layout
 
 ```text
 /SCRIPTS/TELEMETRY/RFMONO.lua
@@ -30,9 +44,13 @@ Ainda nao implementado nesta primeira versao:
 /SOUNDS/en/RFMONO/*.wav
 ```
 
-## Instalacao no SD card
+The Lua module filenames are intentionally short. Older radios can hit path length limits, so files such as `cfg.lua`, `sns.lua`, `lyt.lua`, and `alr.lua` are preferred over longer names.
 
-Copie os arquivos para o cartao SD do radio com esta estrutura:
+Audio files are stored in `SOUNDS/en/RFMONO` to mirror the normal SD card sound structure and improve compatibility with `playFile()` on real radios.
+
+## SD Card Installation
+
+Copy the project files to the radio SD card using this structure:
 
 ```text
 /SCRIPTS/TELEMETRY/RFMONO.lua
@@ -40,20 +58,30 @@ Copie os arquivos para o cartao SD do radio com esta estrutura:
 /SCRIPTS/TELEMETRY/RFMONO/sns.lua
 /SCRIPTS/TELEMETRY/RFMONO/lyt.lua
 /SCRIPTS/TELEMETRY/RFMONO/alr.lua
-/SOUNDS/en/RFMONO/*.wav
+/SOUNDS/en/RFMONO/arm.wav
+/SOUNDS/en/RFMONO/disarm.wav
+/SOUNDS/en/RFMONO/govact.wav
+/SOUNDS/en/RFMONO/govoff.wav
+/SOUNDS/en/RFMONO/lowfuel.wav
 ```
 
-Os arquivos de som ficam em `SOUNDS/en/RFMONO` para replicar a estrutura normal do SD card e melhorar a compatibilidade com `playFile()` em radios reais.
+## Selecting the Telemetry Screen
 
-## Deploy rapido para o simulador no VS Code
+On OpenTX or EdgeTX:
 
-O projeto inclui uma task do VS Code para copiar os arquivos direto para o SD do simulador EdgeTX.
+1. Open the model setup.
+2. Go to the telemetry screen configuration.
+3. Add or edit a telemetry screen.
+4. Select `Script` as the screen type.
+5. Choose `RFMONO`.
 
-Arquivo de configuracao:
+The exact menu names can vary by firmware version, but the script file is `RFMONO.lua`.
 
-[settings.json](C:/Users/vhuza/Documents/Rotorflight%20BW%20Dashboard/.vscode/settings.json)
+## VS Code Simulator Deploy
 
-Campo configuravel:
+The repository includes a VS Code task that copies the project directly to an EdgeTX simulator SD card folder.
+
+Configure the simulator SD root in [.vscode/settings.json](.vscode/settings.json):
 
 ```json
 {
@@ -61,44 +89,28 @@ Campo configuravel:
 }
 ```
 
-Task disponivel:
+Run the task from VS Code:
 
-- `RFMONO: Deploy to EdgeTX simulator SD`
+1. Open `Terminal > Run Task`.
+2. Select `RFMONO: Deploy to EdgeTX simulator SD`.
 
-Como usar no VS Code:
+The task deploys Lua files to:
 
-1. Abra `Terminal > Run Task`
-2. Escolha `RFMONO: Deploy to EdgeTX simulator SD`
+```text
+${rfmono.simulatorSdRoot}/SCRIPTS/TELEMETRY
+```
 
-O deploy copia estes arquivos para `${rfmono.simulatorSdRoot}\\SCRIPTS\\TELEMETRY\\`:
+It deploys audio files to:
 
-- `RFMONO.lua`
-- `RFMONO/cfg.lua`
-- `RFMONO/lyt.lua`
-- `RFMONO/sns.lua`
-- `RFMONO/alr.lua`
+```text
+${rfmono.simulatorSdRoot}/SOUNDS/en/RFMONO
+```
 
-E copia os audios para `${rfmono.simulatorSdRoot}\\SOUNDS\\en\\RFMONO\\`:
+## Sensor Configuration
 
-- `SOUNDS/en/RFMONO/*.wav`
+Telemetry aliases are configured in [cfg.lua](SCRIPTS/TELEMETRY/RFMONO/cfg.lua).
 
-## Como selecionar a tela de telemetria
-
-No OpenTX/EdgeTX, va para a configuracao do modelo e selecione uma tela de telemetria do tipo `Script`.
-
-Depois escolha o script:
-
-`RFMONO`
-
-O nome exibido pode variar um pouco conforme a versao do firmware, mas o arquivo a selecionar sera `RFMONO.lua`.
-
-## Como configurar nomes de sensores
-
-Os nomes esperados ficam em:
-
-[cfg.lua](C:/Users/vhuza/Documents/Rotorflight%20BW%20Dashboard/SCRIPTS/TELEMETRY/RFMONO/cfg.lua)
-
-Voce pode ajustar os nomes usados pelo seu radio nesta tabela:
+You can edit the sensor name lists to match the names discovered by your radio:
 
 - `battery`
 - `cell`
@@ -114,40 +126,72 @@ Voce pode ajustar os nomes usados pelo seu radio nesta tabela:
 - `armFlags`
 - `armDisableFlags`
 
-Exemplo: se o seu sensor de RPM aparece como `RPM1` em vez de `RPM`, altere:
+Example: if your rotor RPM sensor appears as `RPM1`, keep or add it to the `rpm` aliases:
 
 ```lua
 sensors = {
-  rpm = { "RPM1", "RPM" }
+  rpm = { "Hspd", "RPM", "RPM1", "Rotor" }
 }
 ```
 
-O script tenta encontrar o primeiro nome disponivel da lista.
+RFMONO uses the first available telemetry field from each alias list. If a sensor is missing, the dashboard shows `--` instead of raising a Lua error.
 
-## Sensores esperados do Rotorflight
+## Expected Rotorflight Sensors
 
-O MVP foi preparado para trabalhar com estes tipos de dados:
+RFMONO is designed around these Rotorflight-related values:
 
-- Tensao total da bateria
-- Tensao por celula
-- Fuel % ou SmartFuel
-- RPM do rotor
-- Temperatura
+- Total battery voltage
+- Cell voltage
+- Battery percentage, Fuel %, or SmartFuel
+- Rotor RPM
+- Current
+- ESC or flight controller temperature
 - RSSI
 - Link Quality
-- Status do governor
-- Perfil/bank
-- Alertas de arm/disarm quando disponiveis
+- Profile or bank
+- ARM flag
+- ARMD arming-disable flags
 
-Para Rotorflight, os nomes mais importantes usados por esta versao sao:
+The current default aliases include the following important Rotorflight names:
 
-- `Thr` para estimar o estado do governor: `OFF`, `ACTIVE` ou `SPOOL`
-- `ARM` para estado armado
-- `ARMD` para motivos de arming disable
+- `Bat%` for battery percentage or fuel
+- `Vbat` for total battery voltage
+- `Vcel` for cell voltage
+- `Hspd` for rotor RPM
+- `Thr` for throttle
+- `ARM` for armed state
+- `ARMD` for arming-disable reasons
+- `RQly` for link quality
 
-## Audio de bateria baixa
+## Governor Status
 
-Quando `Bat%` chega em `lowFuelPercent`, o script toca o arquivo configurado em `cfg.lua`:
+If a real governor status sensor is not available, RFMONO derives the governor text from the `Thr` sensor:
+
+- `Thr <= 0`: `OFF`
+- `Thr > 50`: `ACTIVE`
+- Any other positive value: `SPOOL`
+
+If `Thr` is missing, RFMONO falls back to the configured `governor` sensor aliases.
+
+## ARM and ARMD Status
+
+RFMONO reads the Rotorflight `ARM` sensor as a bitmask. By default, bit `0` means the model is currently armed.
+
+The `ARMD` sensor is treated as an arming-disable bitmask. When a disable reason is present, it has priority in the top status area over the normal armed/disarmed text.
+
+The default ARMD labels are configured in `armDisableText` inside [cfg.lua](SCRIPTS/TELEMETRY/RFMONO/cfg.lua).
+
+## Alerts and Audio
+
+RFMONO can play audio for:
+
+- Low fuel or battery percentage
+- Armed
+- Disarmed
+- Governor off
+- Governor active
+
+The audio settings are configured in `cfg.lua`:
 
 ```lua
 audio = {
@@ -163,51 +207,45 @@ audio = {
 }
 ```
 
-Os arquivos de audio ficam em `SOUNDS/en/RFMONO` no SD do radio para maior compatibilidade com `playFile()`.
+For best compatibility with older radios, WAV files should be PCM, mono, 16-bit, 16 kHz. The simulator may play more formats than the actual radio, so avoid compressed or A-law WAV files.
 
-Os WAVs precisam estar em PCM mono 16-bit, 16 kHz. O simulador toca formatos mais flexiveis, mas radios antigos podem ignorar WAVs A-law/comprimidos.
+## Missing Sensors
 
-Os sons de `armed`, `disarmed`, `governor off` e `governor active` tambem sao configuraveis. Eles tocam apenas quando o estado muda.
+When a sensor is missing:
 
-Dependendo de como a telemetria estiver configurada no Rotorflight, os nomes exatos podem variar. Por isso os aliases ficam centralizados em `cfg.lua`.
+- The dashboard keeps running.
+- The field displays `--`.
+- The lower warning area may show `SENSOR?`.
 
-## Comportamento quando faltam sensores
+Other warning examples include `LOW BAT`, `LOW FUEL`, and `NO RPM`.
 
-Se um sensor nao existir:
+## Simulation Mode
 
-- o script nao quebra
-- o campo mostra `--`
-- avisos simples podem aparecer na linha inferior, como `SENSOR?`
+Simulation mode is useful while developing without a real telemetry link.
 
-## Modo simulacao
-
-O projeto suporta simulacao para testes, mas no estado atual o padrao esta configurado para telemetria real.
-
-Para ativar a simulacao, altere em `cfg.lua`:
+To enable it, edit [cfg.lua](SCRIPTS/TELEMETRY/RFMONO/cfg.lua):
 
 ```lua
 simulation = true
 ```
 
-Quando `simulation = true`, o script usa valores de exemplo. Quando `false`, ele tenta ler a telemetria real do radio.
+When `simulation = true`, RFMONO uses `simulationData` from the config file. When `false`, it reads real telemetry fields from the radio.
 
-## Observacoes de compatibilidade
+## Design Goals
 
-O projeto foi pensado para radios monocromaticos e mais antigos, como:
+RFMONO prioritizes:
 
-- FrSky Taranis X9D / X9D+ / X9D 2019
-- FrSky Taranis QX7 / QX7S
+- Fast readability in flight
+- High contrast
+- Low CPU and memory usage
+- Safe degradation when telemetry is incomplete
+- Minimal dependencies
+- Simple files that can be edited directly on the SD card if needed
 
-O foco e manter:
+## Roadmap Ideas
 
-- baixo consumo de CPU
-- layout simples
-- boa legibilidade em voo
-- degradacao segura quando faltar telemetria
-
-## Proximos passos sugeridos
-
-- Ligar a camada de sensores a nomes reais do Rotorflight
-- Adicionar deteccao melhor entre RSSI e LQ
-- Refinar os avisos de bateria e RPM
-- Ajustar layout para 128x64 apos teste em radio real ou simulador
+- Improve sensor auto-detection
+- Add optional alternate layouts for other screen sizes
+- Add more Rotorflight-specific status decoding
+- Add language-specific audio folders
+- Add screenshots to this README
