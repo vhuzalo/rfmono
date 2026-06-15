@@ -23,10 +23,11 @@ Ainda nao implementado nesta primeira versao:
 
 ```text
 /SCRIPTS/TELEMETRY/RFMONO.lua
-/SCRIPTS/TELEMETRY/lib/config.lua
-/SCRIPTS/TELEMETRY/lib/sensors.lua
-/SCRIPTS/TELEMETRY/lib/layout.lua
-/SCRIPTS/TELEMETRY/lib/alerts.lua
+/SCRIPTS/TELEMETRY/RFMONO/cfg.lua
+/SCRIPTS/TELEMETRY/RFMONO/sns.lua
+/SCRIPTS/TELEMETRY/RFMONO/lyt.lua
+/SCRIPTS/TELEMETRY/RFMONO/alr.lua
+/SOUNDS/en/RFMONO/*.wav
 ```
 
 ## Instalacao no SD card
@@ -35,13 +36,14 @@ Copie os arquivos para o cartao SD do radio com esta estrutura:
 
 ```text
 /SCRIPTS/TELEMETRY/RFMONO.lua
-/SCRIPTS/TELEMETRY/lib/config.lua
-/SCRIPTS/TELEMETRY/lib/sensors.lua
-/SCRIPTS/TELEMETRY/lib/layout.lua
-/SCRIPTS/TELEMETRY/lib/alerts.lua
+/SCRIPTS/TELEMETRY/RFMONO/cfg.lua
+/SCRIPTS/TELEMETRY/RFMONO/sns.lua
+/SCRIPTS/TELEMETRY/RFMONO/lyt.lua
+/SCRIPTS/TELEMETRY/RFMONO/alr.lua
+/SOUNDS/en/RFMONO/*.wav
 ```
 
-Se a pasta `lib` ainda nao existir dentro de `SCRIPTS/TELEMETRY`, crie-a manualmente.
+Os arquivos de som ficam em `SOUNDS/en/RFMONO` para replicar a estrutura normal do SD card e melhorar a compatibilidade com `playFile()` em radios reais.
 
 ## Deploy rapido para o simulador no VS Code
 
@@ -71,10 +73,14 @@ Como usar no VS Code:
 O deploy copia estes arquivos para `${rfmono.simulatorSdRoot}\\SCRIPTS\\TELEMETRY\\`:
 
 - `RFMONO.lua`
-- `lib/config.lua`
-- `lib/layout.lua`
-- `lib/sensors.lua`
-- `lib/alerts.lua`
+- `RFMONO/cfg.lua`
+- `RFMONO/lyt.lua`
+- `RFMONO/sns.lua`
+- `RFMONO/alr.lua`
+
+E copia os audios para `${rfmono.simulatorSdRoot}\\SOUNDS\\en\\RFMONO\\`:
+
+- `SOUNDS/en/RFMONO/*.wav`
 
 ## Como selecionar a tela de telemetria
 
@@ -90,7 +96,7 @@ O nome exibido pode variar um pouco conforme a versao do firmware, mas o arquivo
 
 Os nomes esperados ficam em:
 
-[config.lua](C:/Users/vhuza/Documents/Rotorflight%20BW%20Dashboard/SCRIPTS/TELEMETRY/lib/config.lua)
+[cfg.lua](C:/Users/vhuza/Documents/Rotorflight%20BW%20Dashboard/SCRIPTS/TELEMETRY/RFMONO/cfg.lua)
 
 Voce pode ajustar os nomes usados pelo seu radio nesta tabela:
 
@@ -98,13 +104,15 @@ Voce pode ajustar os nomes usados pelo seu radio nesta tabela:
 - `cell`
 - `fuel`
 - `rpm`
+- `throttle`
 - `current`
 - `temp`
 - `rssi`
 - `link`
 - `governor`
 - `profile`
-- `armAlert`
+- `armFlags`
+- `armDisableFlags`
 
 Exemplo: se o seu sensor de RPM aparece como `RPM1` em vez de `RPM`, altere:
 
@@ -131,22 +139,37 @@ O MVP foi preparado para trabalhar com estes tipos de dados:
 - Perfil/bank
 - Alertas de arm/disarm quando disponiveis
 
+Para Rotorflight, os nomes mais importantes usados por esta versao sao:
+
+- `Thr` para estimar o estado do governor: `OFF`, `ACTIVE` ou `SPOOL`
+- `ARM` para estado armado
+- `ARMD` para motivos de arming disable
+
 ## Audio de bateria baixa
 
-Quando `Bat%` chega em `lowFuelPercent`, o script toca o arquivo configurado em `config.lua`:
+Quando `Bat%` chega em `lowFuelPercent`, o script toca o arquivo configurado em `cfg.lua`:
 
 ```lua
 audio = {
   lowBatteryEnabled = true,
-  lowBatteryFile = "/SOUNDS/en/lowbat.wav",
+  lowBatteryFile = "/SOUNDS/en/RFMONO/lowfuel.wav",
   lowBatteryRepeatSeconds = 30,
-  lowBatteryResetMargin = 5
+  lowBatteryResetMargin = 5,
+  eventsEnabled = true,
+  armedFile = "/SOUNDS/en/RFMONO/arm.wav",
+  disarmedFile = "/SOUNDS/en/RFMONO/disarm.wav",
+  governorOffFile = "/SOUNDS/en/RFMONO/govoff.wav",
+  governorActiveFile = "/SOUNDS/en/RFMONO/govact.wav"
 }
 ```
 
-O arquivo padrao usa o audio existente no SD do EdgeTX. Se o seu pacote de sons usar outro nome, ajuste `lowBatteryFile`.
+Os arquivos de audio ficam em `SOUNDS/en/RFMONO` no SD do radio para maior compatibilidade com `playFile()`.
 
-Dependendo de como a telemetria estiver configurada no Rotorflight, os nomes exatos podem variar. Por isso os aliases ficam centralizados em `config.lua`.
+Os WAVs precisam estar em PCM mono 16-bit, 16 kHz. O simulador toca formatos mais flexiveis, mas radios antigos podem ignorar WAVs A-law/comprimidos.
+
+Os sons de `armed`, `disarmed`, `governor off` e `governor active` tambem sao configuraveis. Eles tocam apenas quando o estado muda.
+
+Dependendo de como a telemetria estiver configurada no Rotorflight, os nomes exatos podem variar. Por isso os aliases ficam centralizados em `cfg.lua`.
 
 ## Comportamento quando faltam sensores
 
@@ -160,7 +183,7 @@ Se um sensor nao existir:
 
 O projeto suporta simulacao para testes, mas no estado atual o padrao esta configurado para telemetria real.
 
-Para ativar a simulacao, altere em `config.lua`:
+Para ativar a simulacao, altere em `cfg.lua`:
 
 ```lua
 simulation = true

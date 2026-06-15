@@ -108,15 +108,31 @@ return function(config)
     return formatNumber(state.battery, 1, "V") .. " " .. formatNumber(state.cell, 2, "V")
   end
 
+  local function drawSoftBox(x, y, w, h)
+    lcd.drawLine(x + 1, y, x + w - 2, y, SOLID, 0)
+    lcd.drawLine(x + 1, y + h - 1, x + w - 2, y + h - 1, SOLID, 0)
+    lcd.drawLine(x, y + 1, x, y + h - 2, SOLID, 0)
+    lcd.drawLine(x + w - 1, y + 1, x + w - 1, y + h - 2, SOLID, 0)
+  end
+
   local function drawFrame()
-    lcd.drawRectangle(0, MAIN_Y, SCREEN_W, MAIN_H)
-    lcd.drawLine(LEFT_SPLIT, MAIN_Y, LEFT_SPLIT, MAIN_Y + MAIN_H - 1, SOLID, 0)
-    lcd.drawLine(RIGHT_SPLIT, MAIN_Y, RIGHT_SPLIT, MAIN_Y + MAIN_H - 1, SOLID, 0)
+    drawSoftBox(LEFT_X, MAIN_Y, LEFT_W, MAIN_H)
+    drawSoftBox(CENTER_X, MAIN_Y, CENTER_W, MAIN_H)
+    drawSoftBox(RIGHT_X, MAIN_Y, RIGHT_W, MAIN_H)
   end
 
   local function drawTopBar(state)
+    local armAlert = state.armAlert
+
+    if armAlert == nil or armAlert == "" then
+      armAlert = "DISARMED"
+    end
+
+    armAlert = clipText(armAlert, 10)
+
     lcd.drawFilledRectangle(0, 0, SCREEN_W, TOP_H)
     lcd.drawText(1, 1, clipText(state.modelName, 11), INVERS + SMLSIZE)
+    lcd.drawText(math.floor(SCREEN_W / 2), 1, armAlert, INVERS + SMLSIZE + CENTER)
     lcd.drawText(SCREEN_W - 1, 1, "ROTORFLIGHT", INVERS + SMLSIZE + RIGHT)
   end
 
@@ -162,7 +178,7 @@ return function(config)
   local function drawStatusBar(state)
     local linkLabel = "R"
     local linkValue = state.rssi
-    local governor = "GOV " .. clipText(formatText(state.governor, "--"), 3)
+    local governor = "GOV " .. clipText(formatText(state.governor, "--"), 6)
     local rightText = "OK"
 
     if state.link ~= nil then
@@ -170,8 +186,8 @@ return function(config)
       linkValue = state.link
     end
 
-    if state.alert ~= "" then
-      rightText = state.alert
+    if state.warning ~= "" then
+      rightText = state.warning
     end
 
     lcd.drawFilledRectangle(0, STATUS_Y, SCREEN_W, STATUS_H)

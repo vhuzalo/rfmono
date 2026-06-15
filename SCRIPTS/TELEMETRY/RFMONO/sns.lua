@@ -45,8 +45,8 @@ return function(config)
     return text
   end
 
-  local function firstBitIndex(value)
-    local bit = 1
+  local function firstSetBit(value)
+    local bit = 0
     local flags = math.floor(value)
 
     while flags > 0 and bit <= 31 do
@@ -61,8 +61,54 @@ return function(config)
     return nil
   end
 
-  local function formatArmAlert(value)
-    local map = config.armAlertText or {}
+  local function hasBit(value, bit)
+    local flags = math.floor(value)
+    local divisor = 2 ^ bit
+
+    return math.floor(flags / divisor) % 2 == 1
+  end
+
+  local function toNumber(value)
+    if type(value) == "number" then
+      return value
+    end
+
+    if type(value) == "string" then
+      return tonumber(value)
+    end
+
+    return nil
+  end
+
+  local function formatArmStatus(value)
+    local code = toNumber(value)
+
+    if value == nil then
+      return ""
+    end
+
+    if code ~= nil then
+      if not hasBit(code, config.armedFlagBit or 0) then
+        return ""
+      end
+
+      return "ARMED"
+    end
+
+    local key = normalizeKey(value)
+    if key == "0" or key == "" or key == "--" or key == "DISARMED" then
+      return ""
+    end
+
+    if key == "1" or key == "ARMED" or key == "ARM" then
+      return "ARMED"
+    end
+
+    return string.sub(tostring(value), 1, 10)
+  end
+
+  local function formatArmDisableAlert(value)
+    local map = config.armDisableText or {}
 
     if value == nil then
       return ""
@@ -75,16 +121,12 @@ return function(config)
         return ""
       end
 
-      if map[code] ~= nil then
-        return map[code]
-      end
-
-      local bit = firstBitIndex(code)
+      local bit = firstSetBit(code)
       if bit and map[bit] ~= nil then
         return map[bit]
       end
 
-      return "ARM " .. tostring(code)
+      return "ARMD " .. tostring(code)
     end
 
     local key = normalizeKey(value)
@@ -97,6 +139,22 @@ return function(config)
     end
 
     return string.sub(tostring(value), 1, 10)
+  end
+
+  local function formatGovernorFromThrottle(value)
+    if type(value) ~= "number" then
+      return nil
+    end
+
+    if value <= 0 then
+      return "OFF"
+    end
+
+    if value > 50 then
+      return "ACTIVE"
+    end
+
+    return "SPOOL"
   end
 
   local function formatGovernor(value)
@@ -154,12 +212,16 @@ return function(config)
     return warnings[1] .. "+"
   end
 
-  local function formatPrimaryAlert(state)
-    if state.armAlert ~= "" then
-      return state.armAlert
+  local function formatArmAlert(state)
+    if state.armDisableAlert ~= "" then
+      return state.armDisableAlert
     end
 
-    return state.warnings
+    if state.armStatus ~= "" then
+      return state.armStatus
+    end
+
+    return ""
   end
 
   local function resolveSensorId(candidates)
@@ -215,15 +277,19 @@ return function(config)
       cell = readSensor("cell"),
       fuel = readSensor("fuel"),
       rpm = readSensor("rpm"),
+      throttle = readSensor("throttle"),
       current = readSensor("current"),
       temp = readSensor("temp"),
       rssi = readSensor("rssi"),
       link = readSensor("link"),
-      governor = formatGovernor(readSensor("governor")),
+      governor = nil,
       profile = readSensor("profile") or getFlightModeLabel(),
-      armAlert = formatArmAlert(readSensor("armAlert")),
+      armStatus = formatArmStatus(readSensor("armFlags")),
+      armDisableAlert = formatArmDisableAlert(readSensor("armDisableFlags")),
       missingSensors = 0
     }
+
+    state.governor = formatGovernorFromThrottle(state.throttle) or formatGovernor(readSensor("governor"))
 
     local required = { "battery", "cell", "fuel", "rpm", "temp" }
     local i
@@ -234,7 +300,8 @@ return function(config)
     end
 
     state.warnings = formatWarnings(state)
-    state.alert = formatPrimaryAlert(state)
+    state.warning = state.warnings
+    state.armAlert = formatArmAlert(state)
     return state
   end
 
