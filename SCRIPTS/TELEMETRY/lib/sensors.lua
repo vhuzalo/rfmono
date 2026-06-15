@@ -25,6 +25,105 @@ return function(config)
     return nil
   end
 
+  local function getFlightModeLabel()
+    if getFlightMode then
+      local flightMode = getFlightMode()
+      if type(flightMode) == "number" then
+        return "FM" .. tostring(flightMode)
+      end
+    end
+
+    return nil
+  end
+
+  local function normalizeKey(value)
+    local text = string.upper(tostring(value))
+    text = string.gsub(text, "%s+", "")
+    text = string.gsub(text, "_", "")
+    text = string.gsub(text, "-", "")
+
+    return text
+  end
+
+  local function firstBitIndex(value)
+    local bit = 1
+    local flags = math.floor(value)
+
+    while flags > 0 and bit <= 31 do
+      if flags % 2 == 1 then
+        return bit
+      end
+
+      flags = math.floor(flags / 2)
+      bit = bit + 1
+    end
+
+    return nil
+  end
+
+  local function formatArmAlert(value)
+    local map = config.armAlertText or {}
+
+    if value == nil then
+      return ""
+    end
+
+    if type(value) == "number" then
+      local code = math.floor(value + 0.5)
+
+      if code == 0 then
+        return ""
+      end
+
+      if map[code] ~= nil then
+        return map[code]
+      end
+
+      local bit = firstBitIndex(code)
+      if bit and map[bit] ~= nil then
+        return map[bit]
+      end
+
+      return "ARM " .. tostring(code)
+    end
+
+    local key = normalizeKey(value)
+    if key == "0" or key == "" or key == "--" then
+      return ""
+    end
+
+    if map[key] ~= nil then
+      return map[key]
+    end
+
+    return string.sub(tostring(value), 1, 10)
+  end
+
+  local function formatGovernor(value)
+    local map = config.governorText or {}
+
+    if value == nil then
+      return nil
+    end
+
+    if type(value) == "number" then
+      local code = math.floor(value + 0.5)
+
+      if map[code] ~= nil then
+        return map[code]
+      end
+
+      return tostring(code)
+    end
+
+    local key = normalizeKey(value)
+    if map[key] ~= nil then
+      return map[key]
+    end
+
+    return string.sub(tostring(value), 1, 8)
+  end
+
   local function formatWarnings(state)
     local warnings = {}
 
@@ -55,6 +154,14 @@ return function(config)
     return warnings[1] .. "+"
   end
 
+  local function formatPrimaryAlert(state)
+    if state.armAlert ~= "" then
+      return state.armAlert
+    end
+
+    return state.warnings
+  end
+
   local function resolveSensorId(candidates)
     if not getFieldInfo then
       return nil
@@ -77,7 +184,7 @@ return function(config)
     end
 
     local value = getValue(id)
-    if type(value) == "number" then
+    if type(value) == "number" or type(value) == "string" then
       return value
     end
 
@@ -108,9 +215,13 @@ return function(config)
       cell = readSensor("cell"),
       fuel = readSensor("fuel"),
       rpm = readSensor("rpm"),
+      current = readSensor("current"),
       temp = readSensor("temp"),
       rssi = readSensor("rssi"),
       link = readSensor("link"),
+      governor = formatGovernor(readSensor("governor")),
+      profile = readSensor("profile") or getFlightModeLabel(),
+      armAlert = formatArmAlert(readSensor("armAlert")),
       missingSensors = 0
     }
 
@@ -123,6 +234,7 @@ return function(config)
     end
 
     state.warnings = formatWarnings(state)
+    state.alert = formatPrimaryAlert(state)
     return state
   end
 

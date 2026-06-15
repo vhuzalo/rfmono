@@ -1,5 +1,20 @@
 return function(config)
   local M = {}
+  local SCREEN_W = LCD_W or 128
+  local SCREEN_H = LCD_H or 64
+  local TOP_H = 9
+  local MAIN_Y = 10
+  local STATUS_H = 9
+  local STATUS_Y = SCREEN_H - STATUS_H
+  local MAIN_H = STATUS_Y - MAIN_Y
+  local LEFT_W = math.floor(SCREEN_W * 30 / 100)
+  local CENTER_W = math.floor(SCREEN_W * 40 / 100)
+  local RIGHT_W = SCREEN_W - LEFT_W - CENTER_W
+  local LEFT_X = 0
+  local CENTER_X = LEFT_W
+  local RIGHT_X = LEFT_W + CENTER_W
+  local LEFT_SPLIT = CENTER_X
+  local RIGHT_SPLIT = RIGHT_X
 
   local function clipText(text, maxLen)
     if text == nil or text == "" then
@@ -29,9 +44,29 @@ return function(config)
     return string.format("%02d:%02d", minutes, remain)
   end
 
+  local function clamp(value, minValue, maxValue)
+    if value == nil then
+      return minValue
+    end
+
+    if value < minValue then
+      return minValue
+    end
+
+    if value > maxValue then
+      return maxValue
+    end
+
+    return value
+  end
+
   local function formatNumber(value, digits, suffix)
     if value == nil then
       return "--"
+    end
+
+    if type(value) ~= "number" then
+      return tostring(value)
     end
 
     local pattern = "%." .. digits .. "f"
@@ -49,6 +84,10 @@ return function(config)
       return "--"
     end
 
+    if type(value) ~= "number" then
+      return tostring(value)
+    end
+
     local text = tostring(math.floor(value + 0.5))
     if suffix and suffix ~= "" then
       return text .. suffix
@@ -57,62 +96,97 @@ return function(config)
     return text
   end
 
+  local function formatText(value, fallback)
+    if value == nil or value == "" then
+      return fallback or "--"
+    end
+
+    return tostring(value)
+  end
+
+  local function formatBatteryLine(state)
+    return formatNumber(state.battery, 1, "V") .. " " .. formatNumber(state.cell, 2, "V")
+  end
+
   local function drawFrame()
-    lcd.drawRectangle(0, 10, LCD_W, 44)
-    lcd.drawLine(62, 10, 62, 53, SOLID, 0)
-    lcd.drawLine(63, 10, 63, 53, SOLID, 0)
-    lcd.drawLine(64, 31, LCD_W - 1, 31, SOLID, 0)
+    lcd.drawRectangle(0, MAIN_Y, SCREEN_W, MAIN_H)
+    lcd.drawLine(LEFT_SPLIT, MAIN_Y, LEFT_SPLIT, MAIN_Y + MAIN_H - 1, SOLID, 0)
+    lcd.drawLine(RIGHT_SPLIT, MAIN_Y, RIGHT_SPLIT, MAIN_Y + MAIN_H - 1, SOLID, 0)
   end
 
   local function drawTopBar(state)
-    lcd.drawFilledRectangle(0, 0, LCD_W, 9)
-    lcd.drawText(1, 1, clipText(state.modelName, 8), INVERS)
-    lcd.drawText(LCD_W - 1, 1, formatTimer(state.timer), INVERS + RIGHT)
+    lcd.drawFilledRectangle(0, 0, SCREEN_W, TOP_H)
+    lcd.drawText(1, 1, clipText(state.modelName, 11), INVERS + SMLSIZE)
+    lcd.drawText(SCREEN_W - 1, 1, "ROTORFLIGHT", INVERS + SMLSIZE + RIGHT)
   end
 
-  local function drawFuelBlock(state)
-    lcd.drawText(4, 13, "FUEL", 0)
-    lcd.drawText(6, 23, formatInteger(state.fuel, "%"), DBLSIZE)
+  local function drawLeftBlock(state)
+    local center = LEFT_X + math.floor(LEFT_W / 2)
+
+    lcd.drawText(center, 12, "TIME", SMLSIZE + CENTER)
+    lcd.drawText(center, 24, formatTimer(state.timer), MIDSIZE + CENTER)
+    lcd.drawText(center, 47, clipText(formatText(state.profile, "--"), 5), SMLSIZE + CENTER)
   end
 
-  local function drawBatteryBlock(state)
-    lcd.drawText(68, 13, "PACK", 0)
-    lcd.drawText(LCD_W - 3, 13, formatNumber(state.battery, 1, "V"), RIGHT)
+  local function drawCenterBlock(state)
+    local center = CENTER_X + math.floor(CENTER_W / 2)
+    local bodyW = CENTER_W - 7
+    local bodyH = 18
+    local bodyX = center - math.floor(bodyW / 2) - 1
+    local bodyY = 22
+    local fillW = 0
 
-    lcd.drawText(68, 22, "CELL", 0)
-    lcd.drawText(LCD_W - 3, 22, formatNumber(state.cell, 2, "V"), RIGHT)
+    if type(state.fuel) == "number" then
+      fillW = math.floor((bodyW - 4) * clamp(state.fuel, 0, 100) / 100)
+    end
+
+    lcd.drawText(center, 12, "BAT", SMLSIZE + CENTER)
+    lcd.drawRectangle(bodyX, bodyY, bodyW, bodyH)
+    lcd.drawFilledRectangle(bodyX + bodyW, bodyY + 5, 3, 8)
+
+    if fillW > 0 then
+      lcd.drawFilledRectangle(bodyX + 2, bodyY + 2, fillW, bodyH - 4)
+    end
+
+    lcd.drawText(center, bodyY + 5, formatInteger(state.fuel, "%"), INVERS + SMLSIZE + CENTER)
+    lcd.drawText(center, 47, formatBatteryLine(state), SMLSIZE + CENTER)
   end
 
-  local function drawRpmBlock(state)
-    lcd.drawText(68, 35, "RPM", 0)
-    lcd.drawText(LCD_W - 3, 42, formatInteger(state.rpm, ""), RIGHT)
+  local function drawRightBlock(state)
+    local center = RIGHT_X + math.floor(RIGHT_W / 2)
+    lcd.drawText(center, 12, "RPM", SMLSIZE + CENTER)
+    lcd.drawText(center, 24, formatInteger(state.rpm, ""), MIDSIZE + CENTER)
+    lcd.drawText(center, 47, "I" .. formatNumber(state.current, 1, "") .. " T" .. formatInteger(state.temp, ""), SMLSIZE + CENTER)
   end
 
   local function drawStatusBar(state)
-    local linkLabel = "RSSI"
+    local linkLabel = "R"
     local linkValue = state.rssi
+    local governor = "GOV " .. clipText(formatText(state.governor, "--"), 3)
+    local rightText = "OK"
 
     if state.link ~= nil then
       linkLabel = "LQ"
       linkValue = state.link
     end
 
-    lcd.drawFilledRectangle(0, 55, LCD_W, 9)
-    lcd.drawText(1, 56, "T:" .. formatInteger(state.temp, "C"), INVERS + SMLSIZE)
-    lcd.drawText(35, 56, linkLabel .. ":" .. formatInteger(linkValue, ""), INVERS + SMLSIZE)
-
-    if state.warnings ~= "" then
-      lcd.drawText(LCD_W - 1, 56, state.warnings, INVERS + SMLSIZE + RIGHT)
+    if state.alert ~= "" then
+      rightText = state.alert
     end
+
+    lcd.drawFilledRectangle(0, STATUS_Y, SCREEN_W, STATUS_H)
+    lcd.drawText(1, STATUS_Y + 1, linkLabel .. ":" .. formatInteger(linkValue, ""), INVERS + SMLSIZE)
+    lcd.drawText(math.floor(SCREEN_W / 2), STATUS_Y + 1, governor, INVERS + SMLSIZE + CENTER)
+    lcd.drawText(SCREEN_W - 1, STATUS_Y + 1, rightText, INVERS + SMLSIZE + RIGHT)
   end
 
   function M.draw(state)
     lcd.clear()
     drawTopBar(state)
     drawFrame()
-    drawFuelBlock(state)
-    drawBatteryBlock(state)
-    drawRpmBlock(state)
+    drawLeftBlock(state)
+    drawCenterBlock(state)
+    drawRightBlock(state)
     drawStatusBar(state)
   end
 

@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "RFMONO: Deploy to EdgeTX simulator SD",
+      "type": "shell",
+      "command": "$sdRoot = '${config:rfmono.simulatorSdRoot}'\n\tif (-not (Test-Path -LiteralPath $sdRoot)) { throw \"Simulator SD root not found: $sdRoot\" }\n$target = Join-Path -Path $sdRoot -ChildPath 'SCRIPTS\\TELEMETRY'\n$targetLib = Join-Path -Path $target -ChildPath 'lib'\nNew-Item -ItemType Directory -Force -Path $target | Out-Null\nNew-Item -ItemType Directory -Force -Path $targetLib | Out-Null\nCopy-Item -LiteralPath '${workspaceFolder}\\SCRIPTS\\TELEMETRY\\RFMONO.lua' -Destination (Join-Path -Path $target -ChildPath 'RFMONO.lua') -Force\nCopy-Item -LiteralPath '${workspaceFolder}\\SCRIPTS\\TELEMETRY\\lib\\config.lua' -Destination (Join-Path -Path $targetLib -ChildPath 'config.lua') -Force\nCopy-Item -LiteralPath '${workspaceFolder}\\SCRIPTS\\TELEMETRY\\lib\\layout.lua' -Destination (Join-Path -Path $targetLib -ChildPath 'layout.lua') -Force\nCopy-Item -LiteralPath '${workspaceFolder}\\SCRIPTS\\TELEMETRY\\lib\\sensors.lua' -Destination (Join-Path -Path $targetLib -ChildPath 'sensors.lua') -Force\nCopy-Item -LiteralPath '${workspaceFolder}\\SCRIPTS\\TELEMETRY\\lib\\alerts.lua' -Destination (Join-Path -Path $targetLib -ChildPath 'alerts.lua') -Force\nWrite-Host \"RFMONO deployed to $target\"",
+      "options": {
+        "shell": {
+          "executable": "powershell",
+          "args": [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command"
+          ]
+        }
+      },
+      "problemMatcher": []
+    }
+  ]
+}

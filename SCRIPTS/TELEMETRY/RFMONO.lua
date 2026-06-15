@@ -1,8 +1,10 @@
 local config = assert(loadScript("/SCRIPTS/TELEMETRY/lib/config.lua"))()
 local sensorsFactory = assert(loadScript("/SCRIPTS/TELEMETRY/lib/sensors.lua"))()
 local layoutFactory = assert(loadScript("/SCRIPTS/TELEMETRY/lib/layout.lua"))()
+local alertsFactory = assert(loadScript("/SCRIPTS/TELEMETRY/lib/alerts.lua"))()
 local sensors = sensorsFactory(config)
 local layout = layoutFactory(config)
+local alerts = alertsFactory(config)
 
 local app = {
   initialized = false
@@ -19,6 +21,7 @@ local function run(event)
   end
 
   local state = sensors.read()
+  alerts.update(state)
   layout.draw(state, event)
 
   return 0

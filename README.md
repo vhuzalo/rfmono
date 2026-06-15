@@ -26,6 +26,7 @@ Ainda nao implementado nesta primeira versao:
 /SCRIPTS/TELEMETRY/lib/config.lua
 /SCRIPTS/TELEMETRY/lib/sensors.lua
 /SCRIPTS/TELEMETRY/lib/layout.lua
+/SCRIPTS/TELEMETRY/lib/alerts.lua
 ```
 
 ## Instalacao no SD card
@@ -37,9 +38,43 @@ Copie os arquivos para o cartao SD do radio com esta estrutura:
 /SCRIPTS/TELEMETRY/lib/config.lua
 /SCRIPTS/TELEMETRY/lib/sensors.lua
 /SCRIPTS/TELEMETRY/lib/layout.lua
+/SCRIPTS/TELEMETRY/lib/alerts.lua
 ```
 
 Se a pasta `lib` ainda nao existir dentro de `SCRIPTS/TELEMETRY`, crie-a manualmente.
+
+## Deploy rapido para o simulador no VS Code
+
+O projeto inclui uma task do VS Code para copiar os arquivos direto para o SD do simulador EdgeTX.
+
+Arquivo de configuracao:
+
+[settings.json](C:/Users/vhuza/Documents/Rotorflight%20BW%20Dashboard/.vscode/settings.json)
+
+Campo configuravel:
+
+```json
+{
+  "rfmono.simulatorSdRoot": "C:\\Users\\vhuza\\Documents\\EdgeTX\\Taranis X9D 2019 SE"
+}
+```
+
+Task disponivel:
+
+- `RFMONO: Deploy to EdgeTX simulator SD`
+
+Como usar no VS Code:
+
+1. Abra `Terminal > Run Task`
+2. Escolha `RFMONO: Deploy to EdgeTX simulator SD`
+
+O deploy copia estes arquivos para `${rfmono.simulatorSdRoot}\\SCRIPTS\\TELEMETRY\\`:
+
+- `RFMONO.lua`
+- `lib/config.lua`
+- `lib/layout.lua`
+- `lib/sensors.lua`
+- `lib/alerts.lua`
 
 ## Como selecionar a tela de telemetria
 
@@ -63,9 +98,13 @@ Voce pode ajustar os nomes usados pelo seu radio nesta tabela:
 - `cell`
 - `fuel`
 - `rpm`
+- `current`
 - `temp`
 - `rssi`
 - `link`
+- `governor`
+- `profile`
+- `armAlert`
 
 Exemplo: se o seu sensor de RPM aparece como `RPM1` em vez de `RPM`, altere:
 
@@ -88,6 +127,24 @@ O MVP foi preparado para trabalhar com estes tipos de dados:
 - Temperatura
 - RSSI
 - Link Quality
+- Status do governor
+- Perfil/bank
+- Alertas de arm/disarm quando disponiveis
+
+## Audio de bateria baixa
+
+Quando `Bat%` chega em `lowFuelPercent`, o script toca o arquivo configurado em `config.lua`:
+
+```lua
+audio = {
+  lowBatteryEnabled = true,
+  lowBatteryFile = "/SOUNDS/en/lowbat.wav",
+  lowBatteryRepeatSeconds = 30,
+  lowBatteryResetMargin = 5
+}
+```
+
+O arquivo padrao usa o audio existente no SD do EdgeTX. Se o seu pacote de sons usar outro nome, ajuste `lowBatteryFile`.
 
 Dependendo de como a telemetria estiver configurada no Rotorflight, os nomes exatos podem variar. Por isso os aliases ficam centralizados em `config.lua`.
 
@@ -101,12 +158,12 @@ Se um sensor nao existir:
 
 ## Modo simulacao
 
-Esta primeira versao vem com simulacao ativada por padrao para facilitar testes iniciais sem depender da telemetria real.
+O projeto suporta simulacao para testes, mas no estado atual o padrao esta configurado para telemetria real.
 
-Para desligar, altere em `config.lua`:
+Para ativar a simulacao, altere em `config.lua`:
 
 ```lua
-simulation = false
+simulation = true
 ```
 
 Quando `simulation = true`, o script usa valores de exemplo. Quando `false`, ele tenta ler a telemetria real do radio.
