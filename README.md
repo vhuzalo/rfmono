@@ -4,6 +4,8 @@ Lightweight Lua telemetry dashboard for monochrome FrSky radios running OpenTX o
 
 RFMONO is inspired by the Rotorflight Suite for Ethos, but it is designed for small black-and-white screens, low memory, and older transmitters such as the Taranis X9D and QX7.
 
+![RFMONO dashboard preview](docs/rfmono-dashboard.svg)
+
 ## Current Status
 
 This project is still an MVP, but it is already structured for real radio testing:
