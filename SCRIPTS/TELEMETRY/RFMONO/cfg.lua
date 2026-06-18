@@ -16,19 +16,19 @@ return {
     governorActiveFile = "/SOUNDS/en/RFMONO/govact.wav"
   },
   sensors = {
-    battery = { "Vbat", "VFAS", "RxBt", "Batt", "BAT" },
-    cell = { "Vcel", "Cel", "Cell", "Cels", "CELL" },
+    battery = { "Vbat", "VFAS", "Batt", "BAT" },
+    cell = { "Vcel", "Cel", "Cell", "Cels", "CELL", "A4" },
     fuel = { "Bat%", "Fuel", "Fuel%", "SFul", "SmartFuel" },
     rpm = { "Hspd", "RPM", "RPM1", "Rotor" },
-    throttle = { "Thr" },
+    throttle = { "Thr","5184", "51A4" },
     current = { "Curr", "Capa", "Current", "A4" },
     temp = { "Tesc", "Tmp1", "Temp", "TEMP", "ESC" },
     rssi = { "RSSI" },
     link = { "RQly", "LQ", "Link" },
-    governor = { "Gov", "GOV", "GovSt", "Status" },
+    governor = { "Gov", "GOV", "GovSt", "Status","5125" },
     profile = { "Prof", "PID", "Rate", "Bank" },
-    armFlags = { "ARM" },
-    armDisableFlags = { "ARMD" }
+    armFlags = { "ARM","5122" },
+    armDisableFlags = { "ARMD","5123" }
   },
   governorText = {
     [0] = "OFF",

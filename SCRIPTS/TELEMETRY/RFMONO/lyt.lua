@@ -139,7 +139,7 @@ return function(config)
   local function drawLeftBlock(state)
     local center = LEFT_X + math.floor(LEFT_W / 2)
 
-    lcd.drawText(center, 12, "TIME", SMLSIZE + CENTER)
+    lcd.drawText(center, 12, "TIMER", SMLSIZE + CENTER)
     lcd.drawText(center, 24, formatTimer(state.timer), MIDSIZE + CENTER)
     lcd.drawText(center, 47, clipText(formatText(state.profile, "--"), 5), SMLSIZE + CENTER)
   end
@@ -172,7 +172,7 @@ return function(config)
     local center = RIGHT_X + math.floor(RIGHT_W / 2)
     lcd.drawText(center, 12, "RPM", SMLSIZE + CENTER)
     lcd.drawText(center, 24, formatInteger(state.rpm, ""), MIDSIZE + CENTER)
-    lcd.drawText(center, 47, "I" .. formatNumber(state.current, 1, "") .. " T" .. formatInteger(state.temp, ""), SMLSIZE + CENTER)
+    lcd.drawText(center, 47, "A: " .. formatNumber(state.current, 1, "") .. " T: " .. formatInteger(state.temp, ""), SMLSIZE + CENTER)
   end
 
   local function drawStatusBar(state)

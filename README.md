@@ -251,3 +251,10 @@ RFMONO prioritizes:
 - Add more Rotorflight-specific status decoding
 - Add language-specific audio folders
 - Add screenshots to this README
+
+# get telemetry_sensors
+telemetry_sensors = 244,1,6,8,15,60,46,50,90,91,93,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Array length: 40
+Default value: 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+# 
